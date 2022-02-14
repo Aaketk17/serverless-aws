@@ -1,0 +1,109 @@
+# service: s3-file-uploader #name of service
+
+# provider:
+#   name: aws
+#   runtime: nodejs12.x
+#   stage: dev
+#   region: us-east-2
+
+# custom:
+#   fileUploadBucketName: ${self:service}-bucket-${self:provider.stage} #s3-file-uploader-bucket-dev
+
+# resources:
+#   Resources:
+#     FileBucket:
+#       Type: AWS::S3::Bucket
+#       Properties:
+#         BucketName: ${self:custom.fileUploadBucketName}
+#         AccessControl: PublicRead #define objects in s3 buckets are publicly visible
+
+# plugins:
+#   - serverless-iam-roles-per-function
+#usage => to write the iam roles per function, usually it can't be write per function
+#it needs to define the iam roles under provider
+
+#lambda function
+# functions:
+#   s3FileUploader:
+#     handler: src/handler.uploadFileToBucket
+#     name: s3-file-uploader #actual function name
+#     timeout: 60 #seconds
+#     memorySize: 128 #mb
+#     events: #event trigger to trigger the lambda function
+#       - http:
+#           path: files #path of end point
+#           method: POST #end point type
+#     iamRoleStatements: #adding granular level permission
+#       - Effect: Allow #allowing lambda function to put images into s3 bucket
+#         Action:
+#           - 's3:Put*' #resource:operation => syntax | * => allow any operation starting with Put  | only can upload objects cant delete update
+#         Resource: arn:aws:s3:::${self:custom.fileUploadBucketName}/* #defining our s3 bucket | * => put files into any folders or nested directories inside the bucket
+#     environment:
+#       FILE_UPLOAD_BUCKET_NAME: ${self:custom.fileUploadBucketName} #general convention
+
+service: upload-file-to-aws-s3bucket
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  stage: dev
+  region: us-east-2
+  lambdaHashingVersion: 20201221
+  environment:
+    TABLE_NAME: ${self:custom.tableName}
+
+custom:
+  fileUploadBucketName: ${self:service}-${self:provider.stage}-bucket
+  tableName: CsvToDynamoDB
+
+plugins:
+  - serverless-iam-roles-per-function
+functions:
+  fileUpload:
+    handler: src/handler.createSignedUrl
+    events:
+      - http:
+          method: post
+          path: fileUpload
+    environment:
+      BUCKET_NAME: ${self:custom.fileUploadBucketName}
+
+  migrateToDynamoDb:
+    handler: src/handler.migrateDataToDynamoDb
+    events:
+      - s3:
+          bucket: ${self:custom.fileUploadBucketName}
+          event: s3:ObjectCreated:*
+          existing: true
+    environment:
+      BUCKET_NAME: ${self:custom.fileUploadBucketName}
+      REGION: 'us-east-2'
+
+  readFromDynamoDB:
+    handler: src/handler.readFromDynamoDB
+    events:
+      - http:
+          method: get
+          path: readData
+          cors: true
+    environment:
+      TABLE_NAME: ${self:custom.tableName}
+
+resources:
+  Resources:
+    FileBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:custom.fileUploadBucketName}
+        AccessControl: PublicRead
+    CsvToDynamoDB:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.tableName}
+        AttributeDefinitions:
+          - AttributeName: StockCode
+            AttributeType: S
+        KeySchema:
+          - AttributeName: StockCode
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
