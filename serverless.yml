@@ -41,7 +41,7 @@
 #     environment:
 #       FILE_UPLOAD_BUCKET_NAME: ${self:custom.fileUploadBucketName} #general convention
 
-service: upload-file-to-aws-s3bucket
+service: upload-file-aws-s3bucket
 
 provider:
   name: aws
@@ -49,6 +49,8 @@ provider:
   stage: dev
   region: us-east-2
   lambdaHashingVersion: 20201221
+  httpApi:
+    cors: true
   environment:
     TABLE_NAME: ${self:custom.tableName}
 
@@ -62,9 +64,9 @@ functions:
   fileUpload:
     handler: src/handler.createSignedUrl
     events:
-      - http:
+      - httpApi:
           method: post
-          path: fileUpload
+          path: /fileUpload
     environment:
       BUCKET_NAME: ${self:custom.fileUploadBucketName}
 
@@ -82,10 +84,9 @@ functions:
   readFromDynamoDB:
     handler: src/handler.readFromDynamoDB
     events:
-      - http:
+      - httpApi:
           method: get
-          path: readData
-          cors: true
+          path: /readData
     environment:
       TABLE_NAME: ${self:custom.tableName}
 

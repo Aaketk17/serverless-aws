@@ -216,28 +216,30 @@ module.exports.migrateDataToDynamoDb = (event, context, callback) => {
 }
 
 module.exports.readFromDynamoDB = async (event, context, callback) => {
-  console.log('Triggered Event', JSON.parse(event))
+  console.log('Triggered Event', JSON.stringify(event))
 
   const requestObject = JSON.parse(event['body'])
-  const pageSize = requestObject.pageSize
   const page = requestObject.page
+  const pageSize = requestObject.pageSize
+
   const tableName = process.env.TABLE_NAME
 
   console.log(
     'Table Name :-',
     tableName,
-    'Page Size:-',
-    pageSize,
-    'Page :-',
-    page
+    'page :-',
+    page,
+    'pageSize :-',
+    pageSize
   )
 
   let params = {
     TableName: tableName,
-    limit: page,
   }
   let dbData = []
+  let values = {}
   let results
+
   do {
     results = await documentClient.scan(params).promise()
     console.log('Results from Scan :-', results)
@@ -246,8 +248,48 @@ module.exports.readFromDynamoDB = async (event, context, callback) => {
     params.ExclusiveStartKey = results.LastEvaluatedKey
   } while (typeof results.LastEvaluatedKey !== 'undefined')
 
+  values['Item'] = dbData
+
   console.log('Retrived Data :-', dbData)
+  console.log('Retrived Data Object :-', values)
   console.log('Retrived Data Size :-', dbData.length)
 
-  callback(null, dbData)
+  const pagination = (model, page, size) => {
+    const startIndex = (page - 1) * size
+    const endIndex = page * size
+
+    const values = {}
+
+    if (endIndex < dbData.length) {
+      values.Next = {
+        Page: page + 1,
+        Size: pageSize,
+      }
+    }
+
+    if (startIndex > 0) {
+      values.Previous = {
+        Page: page - 1,
+        Size: pageSize,
+      }
+    }
+
+    values.Items = model.slice(startIndex, endIndex)
+
+    return values
+  }
+
+  const paginationResults = pagination(dbData, page, pageSize)
+
+  const response = {
+    statusCode: 200,
+    body: JSON.stringify({
+      Message: 'Data received from DynamoDB',
+      TotalDataCount: dbData.length,
+      PaginatedDataCount: paginationResults.Items.length,
+      PaginatedData: paginationResults,
+    }),
+  }
+
+  callback(null, response)
 }
