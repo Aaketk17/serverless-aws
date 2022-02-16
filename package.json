@@ -11,6 +11,7 @@
   "license": "ISC",
   "dependencies": {
     "aws-sdk": "^2.1073.0",
+    "excel4node": "^1.7.2",
     "xlsx": "^0.18.0"
   },
   "devDependencies": {

@@ -1,5 +1,6 @@
 const AWS = require('aws-sdk')
 const XLSX = require('xlsx')
+var excel = require('excel4node')
 
 const awsRegion = process.env.REGION
 AWS.config.update({
@@ -411,4 +412,89 @@ module.exports.deleteDynamoDbData = async (event, context, callback) => {
     console.log('Error in Deleting Data :-', error)
     callback(null, response)
   }
+}
+
+module.exports.writeDynamoDbDataToFile = async (event, context, callback) => {
+  console.log('Write DB data to File Event Trigger :-', event)
+
+  const bucketName = process.env.BUCKET_NAME
+  const tableName = process.env.TABLE_NAME
+
+  console.log('Table Name :-', tableName, 'Bucket Name :-', bucketName)
+
+  var workbook = new excel.Workbook()
+  var worksheet = workbook.addWorksheet('Sheet 1')
+
+  let params = {
+    TableName: tableName,
+  }
+  let dbData = []
+
+  do {
+    let results = await documentClient.scan(params).promise()
+    console.log('Results from Scan :-', results)
+
+    results.Items.forEach((value) => dbData.push(value))
+    params.ExclusiveStartKey = results.LastEvaluatedKey
+  } while (typeof results.LastEvaluatedKey !== 'undefined')
+
+  console.log('Retrived Data :-', dbData)
+  console.log('Retrived Data Size :-', dbData.length)
+
+  const keyCount = Object.keys(dbData[0])
+
+  for (i = 0; i < keyCount.length; i++) {
+    worksheet
+      .cell(1, i + 1)
+      .string(`${keyCount[i]}`)
+      .style({font: {bold: true}})
+  }
+
+  dbData.forEach((value, index) => {
+    worksheet.cell(index + 2, 1).string(value.InvoiceNo)
+    worksheet.cell(index + 2, 2).string(value.UnitPrice)
+    worksheet.cell(index + 2, 3).string(value.Country)
+    worksheet.cell(index + 2, 4).string(value.InvoiceDate)
+    worksheet.cell(index + 2, 1).string(value.Description)
+    worksheet.cell(index + 2, 2).string(value.Quantity)
+    worksheet.cell(index + 2, 3).string(value.StockCode)
+    worksheet.cell(index + 2, 4).string(value.CustomerID)
+  })
+
+  const dateTime = new Date().valueOf()
+
+  workbook.writeToBuffer().then((buffer) => {
+    var params = {
+      Bucket: bucketName,
+      Key: `writeFromDynamoDB/${dateTime}-file.xlsx`,
+      Body: buffer,
+      ACL: 'public-read',
+    }
+    S3.upload(params, (error, data) => {
+      if (error) {
+        const response = {
+          statusCode: 400,
+          body: JSON.stringify({
+            Message: `Error in Uploading Excel file to Bucket`,
+            Error: error,
+          }),
+        }
+        console.log('Error in Uploading Excel file to Bucket', error)
+        callback(null, response)
+      } else {
+        const response = {
+          statusCode: 200,
+          body: JSON.stringify({
+            Message: `Data from DynamoDB Exported to Excel and uploaded to S3 Bucket ${bucketName}`,
+            Data: data,
+          }),
+        }
+        console.log(
+          `Data from DynamoDB Exported to Excel and uploaded to S3 Bucket ${bucketName}`,
+          data
+        )
+        callback(null, response)
+      }
+    })
+  })
 }
