@@ -101,7 +101,7 @@ functions:
 
   deleteDynamoDbData:
     handler: src/handler.deleteDynamoDbData
-    event:
+    events:
       - httpApi:
           method: delete
           path: /deleteData/{id}
