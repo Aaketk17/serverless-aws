@@ -429,9 +429,10 @@ module.exports.writeDynamoDbDataToFile = async (event, context, callback) => {
     TableName: tableName,
   }
   let dbData = []
+  let results
 
   do {
-    let results = await documentClient.scan(params).promise()
+    results = await documentClient.scan(params).promise()
     console.log('Results from Scan :-', results)
 
     results.Items.forEach((value) => dbData.push(value))
