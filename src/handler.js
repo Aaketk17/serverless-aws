@@ -466,38 +466,45 @@ module.exports.writeDynamoDbDataToFile = async (event, context, callback) => {
 
   const dateTime = new Date().valueOf()
 
-  workbook.writeToBuffer().then((buffer) => {
-    var params = {
-      Bucket: bucketName,
-      Key: `writeFromDynamoDB/${dateTime}-file.xlsx`,
-      Body: buffer,
-      ACL: 'public-read',
-    }
-    s3.upload(params, (error, data) => {
-      if (error) {
-        const response = {
-          statusCode: 400,
-          body: JSON.stringify({
-            Message: `Error in Uploading Excel file to Bucket`,
-            Error: error,
-          }),
-        }
-        console.log('Error in Uploading Excel file to Bucket', error)
-        callback(null, response)
-      } else {
-        const response = {
-          statusCode: 200,
-          body: JSON.stringify({
-            Message: `Data from DynamoDB Exported to Excel and uploaded to S3 Bucket ${bucketName}`,
-            Data: data,
-          }),
-        }
-        console.log(
-          `Data from DynamoDB Exported to Excel and uploaded to S3 Bucket ${bucketName}`,
-          data
-        )
-        callback(null, response)
+  workbook
+    .writeToBuffer()
+    .then((buffer) => {
+      console.log('Buffer :-', buffer)
+      var params = {
+        Bucket: bucketName,
+        Key: `writeFromDynamoDB/${dateTime}-file.xlsx`,
+        Body: buffer,
+        ACL: 'public-read',
       }
+      s3.upload(params, (error, data) => {
+        console.log('s3 Upload')
+        if (error) {
+          const response = {
+            statusCode: 400,
+            body: JSON.stringify({
+              Message: `Error in Uploading Excel file to Bucket`,
+              Error: error,
+            }),
+          }
+          console.log('Error in Uploading Excel file to Bucket', error)
+          callback(null, response)
+        } else {
+          const response = {
+            statusCode: 200,
+            body: JSON.stringify({
+              Message: `Data from DynamoDB Exported to Excel and uploaded to S3 Bucket ${bucketName}`,
+              Data: data,
+            }),
+          }
+          console.log(
+            `Data from DynamoDB Exported to Excel and uploaded to S3 Bucket ${bucketName}`,
+            data
+          )
+          callback(null, response)
+        }
+      })
     })
-  })
+    .catch((error) => {
+      console.log('Error in creating workbook :-', error)
+    })
 }
