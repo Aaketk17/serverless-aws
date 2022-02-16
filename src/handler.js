@@ -473,7 +473,7 @@ module.exports.writeDynamoDbDataToFile = async (event, context, callback) => {
       Body: buffer,
       ACL: 'public-read',
     }
-    S3.upload(params, (error, data) => {
+    s3.upload(params, (error, data) => {
       if (error) {
         const response = {
           statusCode: 400,
