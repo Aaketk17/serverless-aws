@@ -85,8 +85,26 @@ functions:
     handler: src/handler.readFromDynamoDB
     events:
       - httpApi:
-          method: get
+          method: post
           path: /readData
+    environment:
+      TABLE_NAME: ${self:custom.tableName}
+
+  updateDynamoDbData:
+    handler: src/handler.updateDynamoDbData
+    events:
+      - httpApi:
+          method: put
+          path: /updateData/{id}
+    environment:
+      TABLE_NAME: ${self:custom.tableName}
+
+  deleteDynamoDbData:
+    handler: src/handler.deleteDynamoDbData
+    event:
+      - httpApi:
+          method: delete
+          path: /deleteData/{id}
     environment:
       TABLE_NAME: ${self:custom.tableName}
 

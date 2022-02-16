@@ -10,7 +10,7 @@ const s3 = new AWS.S3({signatureVersion: 'v4'})
 const documentClient = new AWS.DynamoDB.DocumentClient({region: awsRegion})
 
 module.exports.createSignedUrl = async (event, context, callback) => {
-  console.log('API end point for Upload file :', event)
+  console.log('Create Signed URL Event Trigger :', event)
 
   const bucketName = process.env.BUCKET_NAME
   const requestObject = JSON.parse(event['body'])
@@ -61,7 +61,7 @@ module.exports.createSignedUrl = async (event, context, callback) => {
 }
 
 module.exports.migrateDataToDynamoDb = (event, context, callback) => {
-  console.log('Event Object :-', JSON.stringify(event))
+  console.log('Migrate Event Trigger :-', event)
   console.log('Uploaded File Details', event.Records[0].s3)
 
   const bucketName = event.Records[0].s3.bucket.name
@@ -216,7 +216,7 @@ module.exports.migrateDataToDynamoDb = (event, context, callback) => {
 }
 
 module.exports.readFromDynamoDB = async (event, context, callback) => {
-  console.log('Triggered Event', JSON.stringify(event))
+  console.log('Read Event Trigger', event)
 
   const requestObject = JSON.parse(event['body'])
   const page = requestObject.page
@@ -292,4 +292,12 @@ module.exports.readFromDynamoDB = async (event, context, callback) => {
   }
 
   callback(null, response)
+}
+
+module.exports.updateDynamoDbData = async (event, context, callback) => {
+  console.log('Update Event Trigger :-', event)
+}
+
+module.exports.deleteDynamoDbData = async (event, context, callback) => {
+  console.log('Delete Event Trigger :-', event)
 }
