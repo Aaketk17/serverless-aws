@@ -442,14 +442,16 @@ module.exports.writeDynamoDbDataToFile = async (event, context, callback) => {
   console.log('Retrived Data :-', dbData)
   console.log('Retrived Data Size :-', dbData.length)
 
-  const keyCount = Object.keys(dbData[0])
+  const keyValues = Object.keys(dbData[0])
 
-  for (i = 0; i < keyCount.length; i++) {
+  console.log('Key Values :- ', keyValues)
+
+  keyValues.forEach((item, index) => {
     worksheet
-      .cell(1, i + 1)
-      .string(`${keyCount[i]}`)
+      .cell(1, index + 1)
+      .string(item)
       .style({font: {bold: true}})
-  }
+  })
 
   dbData.forEach((value, index) => {
     worksheet.cell(index + 2, 1).string(value.InvoiceNo)
