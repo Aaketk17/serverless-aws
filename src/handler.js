@@ -50,7 +50,7 @@ module.exports.createSignedUrl = async (event, context, callback) => {
     })
   } catch (error) {
     const response = {
-      statusCode: 500,
+      statusCode: 400,
       body: JSON.stringify({
         message: 'Error in creating SignedURL',
         Error: error,
@@ -296,8 +296,119 @@ module.exports.readFromDynamoDB = async (event, context, callback) => {
 
 module.exports.updateDynamoDbData = async (event, context, callback) => {
   console.log('Update Event Trigger :- ', event)
+
+  const requestObject = JSON.parse(event['body'])
+  const tableName = process.env.TABLE_NAME
+  const updateId = event.pathParameters.id
+  const quantity = requestObject.quantity
+  const country = requestObject.country
+  const unitPrice = requestObject.unitPrice
+
+  console.log(
+    'Table Name :-',
+    tableName,
+    'Update ID :-',
+    updateId,
+    'Quantity :-',
+    quantity,
+    'County :-',
+    country,
+    'UnitPrice :-',
+    unitPrice
+  )
+
+  if (
+    quantity === undefined ||
+    country === undefined ||
+    unitPrice === undefined
+  ) {
+    const response = {
+      statusCode: 404,
+      body: JSON.stringify({
+        Message: `Updating Data with StockID ${updateId} is missing parameters`,
+      }),
+    }
+    callback(null, response)
+  } else {
+    const params = {
+      TableName: tableName,
+      Key: {
+        StockCode: updateId,
+      },
+      UpdateExpression:
+        'set #quantity = :quantity, #country = :country, #unitPrice = :unitPrice',
+      ExpressionAttributeNames: {
+        '#quantity': 'Quantity',
+        '#country': 'Country',
+        '#unitPrice': 'UnitPrice',
+      },
+      ExpressionAttributeValues: {
+        ':quantity': quantity,
+        ':country': country,
+        ':unitPrice': unitPrice,
+      },
+      ReturnValues: 'UPDATED_NEW',
+    }
+    try {
+      const updatedResults = await documentClient.update(params).promise()
+      const response = {
+        statusCode: 200,
+        body: JSON.stringify({
+          Message: `Data with StockID ${updateId} successfully Updated with the new given values`,
+          Results: updatedResults,
+        }),
+      }
+      console.log('Updated Results :-', updatedResults)
+      callback(null, response)
+    } catch (error) {
+      const response = {
+        statusCode: 400,
+        body: JSON.stringify({
+          Message: `Error in Updating Data with StockID ${updateId}`,
+          Error: error,
+        }),
+      }
+      console.log('Error in Updating :-', error)
+      callback(null, response)
+    }
+  }
 }
 
 module.exports.deleteDynamoDbData = async (event, context, callback) => {
   console.log('Delete Event Trigger :- ', event)
+
+  const tableName = process.env.TABLE_NAME
+  const deletionId = event.pathParameters.id
+
+  console.log('Table Name :-', tableName, 'Deletion ID :-', deletionId)
+
+  const params = {
+    TableName: tableName,
+    Key: {
+      StockCode: deletionId,
+    },
+  }
+
+  try {
+    const deletedResult = await documentClient.delete(params).promise()
+    const response = {
+      statusCode: 200,
+      body: JSON.stringify({
+        Message: `Data with StockID ${deletionId} successfully deleted`,
+        Results: deletedResult,
+      }),
+    }
+    console.log('Deletion Success :-', deletedResult)
+    callback(null, response)
+  } catch (error) {
+    const response = {
+      statusCode: 400,
+      body: JSON.stringify({
+        Message: `Error in Deleting Data with StockID ${deletionId}`,
+        Error: error,
+      }),
+    }
+    console.log('Error in Deleting Data :-', error)
+    callback(null, response)
+  }
 }
