@@ -1,6 +1,6 @@
 const AWS = require('aws-sdk')
-const XLSX = require('xlsx')
 var excel = require('excel4node')
+const XLSX = require('xlsx')
 
 const awsRegion = process.env.REGION
 AWS.config.update({
@@ -446,12 +446,38 @@ module.exports.writeDynamoDbDataToFile = async (event, context, callback) => {
 
   console.log('Key Values :- ', keyValues)
 
-  keyValues.forEach((item, index) => {
-    worksheet
-      .cell(1, index + 1)
-      .string(item)
-      .style({font: {bold: true}})
-  })
+  worksheet
+    .cell(1, 1)
+    .string('InvoiceNo')
+    .style({font: {bold: true}})
+  worksheet
+    .cell(1, 2)
+    .string('UnitPrice')
+    .style({font: {bold: true}})
+  worksheet
+    .cell(1, 3)
+    .string('Country')
+    .style({font: {bold: true}})
+  worksheet
+    .cell(1, 4)
+    .string('InvoiceDate')
+    .style({font: {bold: true}})
+  worksheet
+    .cell(1, 5)
+    .string('Description')
+    .style({font: {bold: true}})
+  worksheet
+    .cell(1, 6)
+    .string('Quantity')
+    .style({font: {bold: true}})
+  worksheet
+    .cell(1, 7)
+    .string('StockCode')
+    .style({font: {bold: true}})
+  worksheet
+    .cell(1, 8)
+    .string('CustomerID')
+    .style({font: {bold: true}})
 
   dbData.forEach((value, index) => {
     worksheet.cell(index + 2, 1).string(value.InvoiceNo)
@@ -466,13 +492,15 @@ module.exports.writeDynamoDbDataToFile = async (event, context, callback) => {
 
   const dateTime = new Date().valueOf()
 
+  console.log(dateTime)
+
   workbook
     .writeToBuffer()
     .then((buffer) => {
       console.log('Buffer :-', buffer)
       var params = {
         Bucket: bucketName,
-        Key: `writeFromDynamoDB/${dateTime}-file.xlsx`,
+        Key: `${dateTime}-file.xlsx`,
         Body: buffer,
         ACL: 'public-read',
       }
