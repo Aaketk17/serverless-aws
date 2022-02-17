@@ -492,7 +492,7 @@ module.exports.writeDynamoDbDataToFile = async (event, context, callback) => {
 
   const dateTime = new Date().valueOf()
 
-  console.log(dateTime)
+  console.log(worksheet, 'kkkkkk', workbook)
 
   workbook
     .writeToBuffer()
