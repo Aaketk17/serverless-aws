@@ -460,30 +460,46 @@ module.exports.writeDynamoDbDataToFile = async (event, context, callback) => {
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     ContentEncoding: 'base64',
   }
-  console.log('workbook', workbook)
+
+  const signedUrlExpireSeconds = 60 * 5
+  const getObjectParams = {
+    Bucket: bucketName,
+    Key: `${dateTime}file.xlsx`,
+    Expires: signedUrlExpireSeconds,
+  }
+
   try {
     const result = await s3.upload(values).promise()
+    const downloadSignedUrl = await s3
+      .getSignedUrl('getObject', getObjectParams)
+      .promise()
     const response = {
       statusCode: 200,
       body: JSON.stringify({
-        Message: `Data from DynamoDB Exported to Excel and uploaded to S3 Bucket ${bucketName}`,
+        Message: 'Data from DynamoDB Exported to Excel and URL is created',
         Data: result,
+        URL: downloadSignedUrl,
       }),
     }
     console.log(
-      `Data from DynamoDB Exported to Excel and uploaded to S3 Bucket ${bucketName}`,
-      result
+      'Data from DynamoDB Exported to Excel',
+      result,
+      'URL created',
+      downloadSignedUrl
     )
     callback(null, response)
   } catch (error) {
     const response = {
       statusCode: 400,
       body: JSON.stringify({
-        Message: `Error in Uploading Excel file to Bucket`,
+        Message: 'Error in Uploading Excel file to Bucket or in creating URL',
         Error: error,
       }),
     }
-    console.log('Error in Uploading Excel file to Bucket', error)
+    console.log(
+      'Error in Uploading Excel file to Bucket or in creating URL',
+      error
+    )
     callback(null, response)
   }
 }
