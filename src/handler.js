@@ -444,7 +444,7 @@ module.exports.writeDynamoDbDataToFile = async (event, context, callback) => {
 
   var worksheet = XLSX.utils.json_to_sheet(dbData, headers)
   XLSX.utils.book_append_sheet(workbook, worksheet, 'sheet 1')
-  const file = XLSX.write(workbook, {type: 'buffer', bookType: 'xlsx'})
+  const file = await XLSX.write(workbook, {type: 'buffer', bookType: 'xlsx'})
 
   const dateTime = new Date().valueOf()
 
@@ -454,7 +454,7 @@ module.exports.writeDynamoDbDataToFile = async (event, context, callback) => {
     Body: file,
   }
 
-  s3.putObject(values, (error, data) => {
+  s3.upload(values, (error, data) => {
     console.log('s3 Upload')
     if (error) {
       const response = {
