@@ -470,9 +470,10 @@ module.exports.writeDynamoDbDataToFile = async (event, context, callback) => {
 
   try {
     const result = await s3.upload(values).promise()
-    const downloadSignedUrl = await s3
-      .getSignedUrl('getObject', getObjectParams)
-      .promise()
+    const downloadSignedUrl = await s3.getSignedUrl(
+      'getObject',
+      getObjectParams
+    )
     const response = {
       statusCode: 200,
       body: JSON.stringify({
