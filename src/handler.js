@@ -449,14 +449,14 @@ module.exports.writeDynamoDbDataToFile = async (event, context, callback) => {
 
   const dateTime = new Date().valueOf()
 
-  var params = {
+  var values = {
     Bucket: bucketName,
     Key: `${dateTime}-file.xlsx`,
     Body: file,
     ACL: 'public-read',
   }
 
-  s3.upload(params, (error, data) => {
+  s3.upload(values, (error, data) => {
     console.log('s3 Upload')
     if (error) {
       const response = {
