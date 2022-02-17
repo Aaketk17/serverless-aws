@@ -422,9 +422,6 @@ module.exports.writeDynamoDbDataToFile = async (event, context, callback) => {
 
   console.log('Table Name :-', tableName, 'Bucket Name :-', bucketName)
 
-  var workbook = new excel.Workbook()
-  var worksheet = workbook.addWorksheet('Sheet 1')
-
   let params = {
     TableName: tableName,
   }
@@ -442,97 +439,48 @@ module.exports.writeDynamoDbDataToFile = async (event, context, callback) => {
   console.log('Retrived Data :-', dbData)
   console.log('Retrived Data Size :-', dbData.length)
 
-  const keyValues = Object.keys(dbData[0])
+  var workbook = XLSX.utils.book_new()
+  const headers = Object.keys(dbData[0])
+  console.log('Key Values :- ', headers)
 
-  console.log('Key Values :- ', keyValues)
-
-  worksheet
-    .cell(1, 1)
-    .string('InvoiceNo')
-    .style({font: {bold: true}})
-  worksheet
-    .cell(1, 2)
-    .string('UnitPrice')
-    .style({font: {bold: true}})
-  worksheet
-    .cell(1, 3)
-    .string('Country')
-    .style({font: {bold: true}})
-  worksheet
-    .cell(1, 4)
-    .string('InvoiceDate')
-    .style({font: {bold: true}})
-  worksheet
-    .cell(1, 5)
-    .string('Description')
-    .style({font: {bold: true}})
-  worksheet
-    .cell(1, 6)
-    .string('Quantity')
-    .style({font: {bold: true}})
-  worksheet
-    .cell(1, 7)
-    .string('StockCode')
-    .style({font: {bold: true}})
-  worksheet
-    .cell(1, 8)
-    .string('CustomerID')
-    .style({font: {bold: true}})
-
-  dbData.forEach((value, index) => {
-    worksheet.cell(index + 2, 1).string(value.InvoiceNo)
-    worksheet.cell(index + 2, 2).string(value.UnitPrice)
-    worksheet.cell(index + 2, 3).string(value.Country)
-    worksheet.cell(index + 2, 4).string(value.InvoiceDate)
-    worksheet.cell(index + 2, 1).string(value.Description)
-    worksheet.cell(index + 2, 2).string(value.Quantity)
-    worksheet.cell(index + 2, 3).string(value.StockCode)
-    worksheet.cell(index + 2, 4).string(value.CustomerID)
-  })
+  var worksheet = XLSX.utils.json_to_sheet(dbData, headers)
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'sheet 1')
+  const file = XLSX.write(workbook, {type: 'buffer', bookType: 'xlsx'})
 
   const dateTime = new Date().valueOf()
 
-  console.log(worksheet, 'kkkkkk', workbook)
+  var params = {
+    Bucket: bucketName,
+    Key: `${dateTime}-file.xlsx`,
+    Body: file,
+    ACL: 'public-read',
+  }
 
-  workbook
-    .writeToBuffer()
-    .then((buffer) => {
-      console.log('Buffer :-', buffer)
-      var params = {
-        Bucket: bucketName,
-        Key: `${dateTime}-file.xlsx`,
-        Body: buffer,
-        ACL: 'public-read',
+  s3.upload(params, (error, data) => {
+    console.log('s3 Upload')
+    if (error) {
+      const response = {
+        statusCode: 400,
+        body: JSON.stringify({
+          Message: `Error in Uploading Excel file to Bucket`,
+          Error: error,
+        }),
       }
-      s3.upload(params, (error, data) => {
-        console.log('s3 Upload')
-        if (error) {
-          const response = {
-            statusCode: 400,
-            body: JSON.stringify({
-              Message: `Error in Uploading Excel file to Bucket`,
-              Error: error,
-            }),
-          }
-          console.log('Error in Uploading Excel file to Bucket', error)
-          callback(null, response)
-        } else {
-          const response = {
-            statusCode: 200,
-            body: JSON.stringify({
-              Message: `Data from DynamoDB Exported to Excel and uploaded to S3 Bucket ${bucketName}`,
-              Data: data,
-            }),
-          }
-          console.log(
-            `Data from DynamoDB Exported to Excel and uploaded to S3 Bucket ${bucketName}`,
-            data
-          )
-          callback(null, response)
-        }
-      })
-    })
-    .catch((error) => {
-      console.log('Error in creating workbook :-', error)
-    })
+      console.log('Error in Uploading Excel file to Bucket', error)
+      callback(null, response)
+    } else {
+      const response = {
+        statusCode: 200,
+        body: JSON.stringify({
+          Message: `Data from DynamoDB Exported to Excel and uploaded to S3 Bucket ${bucketName}`,
+          Data: data,
+        }),
+      }
+      console.log(
+        `Data from DynamoDB Exported to Excel and uploaded to S3 Bucket ${bucketName}`,
+        data
+      )
+      callback(null, response)
+    }
+  })
 }
