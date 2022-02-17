@@ -1,5 +1,4 @@
 const AWS = require('aws-sdk')
-var excel = require('excel4node')
 const XLSX = require('xlsx')
 
 const awsRegion = process.env.REGION
