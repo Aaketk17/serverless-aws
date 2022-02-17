@@ -452,37 +452,37 @@ module.exports.writeDynamoDbDataToFile = async (event, context, callback) => {
     Bucket: bucketName,
     Key: `${dateTime}file.xlsx`,
     Body: file,
+    ContentType:
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    ContentEncoding: 'base64',
   }
   console.log('values', values)
-  try {
-    s3.upload(values, (error, data) => {
-      console.log('s3 Upload')
-      if (error) {
-        const response = {
-          statusCode: 400,
-          body: JSON.stringify({
-            Message: `Error in Uploading Excel file to Bucket`,
-            Error: error,
-          }),
-        }
-        console.log('Error in Uploading Excel file to Bucket', error)
-        callback(null, response)
-      } else {
-        const response = {
-          statusCode: 200,
-          body: JSON.stringify({
-            Message: `Data from DynamoDB Exported to Excel and uploaded to S3 Bucket ${bucketName}`,
-            Data: data,
-          }),
-        }
-        console.log(
-          `Data from DynamoDB Exported to Excel and uploaded to S3 Bucket ${bucketName}`,
-          data
-        )
-        callback(null, response)
+
+  s3.upload(values, (error, data) => {
+    console.log('s3 Upload')
+    if (error) {
+      const response = {
+        statusCode: 400,
+        body: JSON.stringify({
+          Message: `Error in Uploading Excel file to Bucket`,
+          Error: error,
+        }),
       }
-    })
-  } catch (error) {
-    console.log('Error', error)
-  }
+      console.log('Error in Uploading Excel file to Bucket', error)
+      callback(null, response)
+    } else {
+      const response = {
+        statusCode: 200,
+        body: JSON.stringify({
+          Message: `Data from DynamoDB Exported to Excel and uploaded to S3 Bucket ${bucketName}`,
+          Data: data,
+        }),
+      }
+      console.log(
+        `Data from DynamoDB Exported to Excel and uploaded to S3 Bucket ${bucketName}`,
+        data
+      )
+      callback(null, response)
+    }
+  })
 }
