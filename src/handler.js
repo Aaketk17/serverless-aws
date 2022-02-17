@@ -476,6 +476,9 @@ module.exports.writeDynamoDbDataToFile = async (event, context, callback) => {
     )
     const response = {
       statusCode: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+      },
       body: JSON.stringify({
         Message: 'Data from DynamoDB Exported to Excel and URL is created',
         Data: result,
