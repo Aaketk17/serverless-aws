@@ -454,7 +454,7 @@ module.exports.writeDynamoDbDataToFile = async (event, context, callback) => {
     Body: file,
   }
 
-  s3.upload(values, (error, data) => {
+  s3.putObject(values, (error, data) => {
     console.log('s3 Upload')
     if (error) {
       const response = {
