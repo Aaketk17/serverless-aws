@@ -444,7 +444,11 @@ module.exports.writeDynamoDbDataToFile = async (event, context, callback) => {
 
   var worksheet = XLSX.utils.json_to_sheet(dbData, headers)
   XLSX.utils.book_append_sheet(workbook, worksheet, 'sheet 1')
-  const file = await XLSX.write(workbook, {type: 'buffer', bookType: 'xlsx'})
+  const file = await XLSX.write(workbook, {
+    type: 'buffer',
+    bookType: 'xlsx',
+    bookSST: false,
+  })
 
   const dateTime = new Date().valueOf()
 
@@ -456,33 +460,30 @@ module.exports.writeDynamoDbDataToFile = async (event, context, callback) => {
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     ContentEncoding: 'base64',
   }
-  console.log('values', values)
-
-  s3.upload(values, (error, data) => {
-    console.log('s3 Upload')
-    if (error) {
-      const response = {
-        statusCode: 400,
-        body: JSON.stringify({
-          Message: `Error in Uploading Excel file to Bucket`,
-          Error: error,
-        }),
-      }
-      console.log('Error in Uploading Excel file to Bucket', error)
-      callback(null, response)
-    } else {
-      const response = {
-        statusCode: 200,
-        body: JSON.stringify({
-          Message: `Data from DynamoDB Exported to Excel and uploaded to S3 Bucket ${bucketName}`,
-          Data: data,
-        }),
-      }
-      console.log(
-        `Data from DynamoDB Exported to Excel and uploaded to S3 Bucket ${bucketName}`,
-        data
-      )
-      callback(null, response)
+  console.log('workbook', workbook)
+  try {
+    const result = await s3.upload(values).promise()
+    const response = {
+      statusCode: 200,
+      body: JSON.stringify({
+        Message: `Data from DynamoDB Exported to Excel and uploaded to S3 Bucket ${bucketName}`,
+        Data: result,
+      }),
     }
-  })
+    console.log(
+      `Data from DynamoDB Exported to Excel and uploaded to S3 Bucket ${bucketName}`,
+      result
+    )
+    callback(null, response)
+  } catch (error) {
+    const response = {
+      statusCode: 400,
+      body: JSON.stringify({
+        Message: `Error in Uploading Excel file to Bucket`,
+        Error: error,
+      }),
+    }
+    console.log('Error in Uploading Excel file to Bucket', error)
+    callback(null, response)
+  }
 }
