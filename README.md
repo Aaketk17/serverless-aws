@@ -1,2 +1,2 @@
 
-serverless-aws
+serverless-aws-practise
